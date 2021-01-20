@@ -27,12 +27,13 @@ class Voltage():
         self.initial_time=time.time()
         self.voltage_list=[]
         self.voltage_list=[49]
+        # self.voltage_list=[]
         self.delta_time_list=[np.nan]
         self.time_list=[time.time()]
     
     def update_voltage(self,voltage):
-        self.voltage_list.append(cs.battery_voltage)
-        # self.voltage_list.append(voltage)
+        
+        self.voltage_list.append(voltage)
         
         self.delta_time_list.append(time.time()-self.time_list[-1])
         self.time_list.append(time.time())
@@ -62,18 +63,22 @@ class Voltage():
 class PID():
     
     def __init__(self):
-        self.target_voltage=48.0
+        # self.target_voltage=48.0
         self.PID_Pgain=0.24
         self.PID_Dgain=0.012
         self.PID_Igain=0.012
         self.PID_Windupgain=5
         self.pwm_servo=0.15
         self.min_pwm_servo=0.15
-        self.max_pwm_servo=0.35
+        self.max_pwm_servo=0.30
         self.last_error=0
         self.last_integral=0
         self.last_command=self.pwm_servo
     
+    def define_target_voltage(self,target_voltage):
+        self.target_voltage=target_voltage
+        print('Target Voltage defined at:',self.target_voltage)
+        
     def calculate_pwm(self,voltage_state,voltage,sample_time):
         if voltage_state=='Unknown':
             self.pwm_servo=self.pwm_servo
@@ -98,16 +103,17 @@ class PID():
         self.last_command=self.pwm_servo
         print(self.pwm_servo)
         
-# def charge_battery()
+
 ## Params
 # initial_voltage=45 #cs.voltage
 initial_voltage=cs.battery_voltage
 target_voltage=initial_voltage+1
-initial_value=0.15
-armed_state=False#cs.armed
+# initial_value=0.15
+# armed_state=False
+armed_state=cs.armed
 # rpm=10000#cs.rpm1
 rpm=cs.rpm1
-max_time=2 # In Seconds
+max_time=10 # In Seconds
 
 PWM_SERVO_MIN =1100# Script.GetParam('SERVO'+str(int(PWM_SERVO_CHANNEL))+'_MIN')
 PWM_SERVO_MAX =1900# Script.GetParam('SERVO'+str(int(PWM_SERVO_CHANNEL))+'_MAX')
@@ -116,7 +122,7 @@ PWM_SERVO_OFFSET = PWM_SERVO_MIN
 
 initial_time=time.time()
 
-voltage_list=[45]#[cs.voltage]
+# voltage_list=[45]#[cs.voltage]
 
 if armed_state == True:
     print('Não Execute o Script com a Aeronave Armada')
@@ -131,6 +137,7 @@ elif armed_state == False and rpm > 1800: # Aeronave no chao com motor ligado
     V=Voltage()
     V.voltage_state()
     PID=PID()
+    PID.define_target_voltage(cs.voltage+1)
     
     while (time.time()-initial_time<max_time):# & (V.current_voltage<PID.target_voltage):
         # V.update_voltage(48+1*np.random.uniform(-1,1,1)[0])
