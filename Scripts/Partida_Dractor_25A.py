@@ -111,6 +111,15 @@ def saturation(value, value_min, value_max):
         return value_max
     return value
     
+def initialize():
+    MAV.doCommand(MAVLink.MAV_CMD.DO_SET_SERVO, PWM_SERVO_CHANNEL, (1-0) * PWM_SERVO_RANGE + PWM_SERVO_OFFSET, 0,0,0,0,0)
+    MAV.doCommand(MAVLink.MAV_CMD.DO_SET_SERVO, PWM_STARTER_CHANNEL, 0 * PWM_STARTER_RANGE + PWM_STARTER_OFFSET, 0,0,0,0,0)
+    # MAV.doCommand(MAVLink.MAV_CMD.DO_SET_SERVO, PWM_KILLSWITCH_CHANNEL, 0 * PWM_KILLSWITCH_RANGE + PWM_KILLSWITCH_OFFSET, 0,0,0,0,0)
+    MAV.doCommand(MAVLink.MAV_CMD.DO_SET_RELAY, 2, 0, 0,0,0,0,0) # kill switch
+    MAV.doCommand(MAVLink.MAV_CMD.DO_SET_SERVO, PWM_FAN_CHANNEL, 0 * PWM_FAN_RANGE + PWM_FAN_OFFSET, 0,0,0,0,0)
+    MAV.doCommand(MAVLink.MAV_CMD.DO_SET_RELAY, 1, 0, 0,0,0,0,0)
+    print 'Falha na Partida do Motor. Execute o Script novamente.'
+
 #Ramp of PWM in order to turn on the fan    
 def turnON_fan(ramp_time, increment_time):
     print 'Ligando Ventoinha!'
@@ -163,7 +172,7 @@ def starting_m(current_time):
             current_starting_state = STARTING_STATES.RPM_CHECK
     elif current_starting_state == STARTING_STATES.RPM_CHECK:
         pwm_killswitch = 1
-        if (current_time - state_time) >= 3950:
+        if (current_time - state_time) >= 6000: #3950 antigo
             if rpm > 1800:
                 #print 'Done'
                 current_starting_state = STARTING_STATES.SUCCESS
@@ -211,7 +220,7 @@ def starter_m(current_time):
             print 'Partida com Sucesso :D'
             state_time = current_time
             current_starter_state = STARTER_STATES.SUCCESS
-            pwm_servo = 0.10
+            pwm_servo = 0.10 # Marcha Lenta
             
     elif current_starter_state == STARTER_STATES.SUCCESS:
 
@@ -284,15 +293,22 @@ rpm = cs.rpm1
  
 if(rpm> 1800 and current_starter_state <> STARTER_STATES.FAILED):
     turnON_fan(8.0,0.2)
-    Script.ChangeMode('LOITER') 
-    print 'Modo Loiter Ativado'
-    print 'Pronto para Armar e Voar!'
-    MissionPlanner.MainV2.speechEngine.SpeakAsync("Pronto para voar! Tenha um bom voo")
-else:
-    MAV.doCommand(MAVLink.MAV_CMD.DO_SET_SERVO, PWM_SERVO_CHANNEL, (1-0) * PWM_SERVO_RANGE + PWM_SERVO_OFFSET, 0,0,0,0,0)
-    MAV.doCommand(MAVLink.MAV_CMD.DO_SET_SERVO, PWM_STARTER_CHANNEL, 0 * PWM_STARTER_RANGE + PWM_STARTER_OFFSET, 0,0,0,0,0)
-    # MAV.doCommand(MAVLink.MAV_CMD.DO_SET_SERVO, PWM_KILLSWITCH_CHANNEL, 0 * PWM_KILLSWITCH_RANGE + PWM_KILLSWITCH_OFFSET, 0,0,0,0,0)
-    MAV.doCommand(MAVLink.MAV_CMD.DO_SET_RELAY, 2, 0, 0,0,0,0,0) # kill switch
-    MAV.doCommand(MAVLink.MAV_CMD.DO_SET_SERVO, PWM_FAN_CHANNEL, 0 * PWM_FAN_RANGE + PWM_FAN_OFFSET, 0,0,0,0,0)
-    MAV.doCommand(MAVLink.MAV_CMD.DO_SET_RELAY, 1, 0, 0,0,0,0,0)
-    print 'Falha na Partida do Motor. Execute o Script novamente.'
+    # Read again RPM and decide
+    time.sleep(2)
+    rpm=cs.rpm1
+    if(rpm> 1800 and current_starter_state <> STARTER_STATES.FAILED):
+        Script.ChangeMode('LOITER') 
+        print 'Modo Loiter Ativado'
+        print 'Pronto para Armar e Voar!'
+        MissionPlanner.MainV2.speechEngine.SpeakAsync("Pronto para voar! Tenha um bom voo")
+    else:  # Desliga e manda começar de novo
+        initialize()
+else: # Desliga e manda começar de novo
+    initialize()
+    # MAV.doCommand(MAVLink.MAV_CMD.DO_SET_SERVO, PWM_SERVO_CHANNEL, (1-0) * PWM_SERVO_RANGE + PWM_SERVO_OFFSET, 0,0,0,0,0)
+    # MAV.doCommand(MAVLink.MAV_CMD.DO_SET_SERVO, PWM_STARTER_CHANNEL, 0 * PWM_STARTER_RANGE + PWM_STARTER_OFFSET, 0,0,0,0,0)
+    # # MAV.doCommand(MAVLink.MAV_CMD.DO_SET_SERVO, PWM_KILLSWITCH_CHANNEL, 0 * PWM_KILLSWITCH_RANGE + PWM_KILLSWITCH_OFFSET, 0,0,0,0,0)
+    # MAV.doCommand(MAVLink.MAV_CMD.DO_SET_RELAY, 2, 0, 0,0,0,0,0) # kill switch
+    # MAV.doCommand(MAVLink.MAV_CMD.DO_SET_SERVO, PWM_FAN_CHANNEL, 0 * PWM_FAN_RANGE + PWM_FAN_OFFSET, 0,0,0,0,0)
+    # MAV.doCommand(MAVLink.MAV_CMD.DO_SET_RELAY, 1, 0, 0,0,0,0,0)
+    # print 'Falha na Partida do Motor. Execute o Script novamente.'
