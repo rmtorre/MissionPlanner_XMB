@@ -28,7 +28,7 @@ MissionPlanner.MainV2.speechEngine.SpeakAsync("Ligando")
 
 #Definition of variables
 # max_pwm_start_array = [0.4, 0.6, 0.8, 1, 0.4, 0.6, 0.8, 1, 0.8, 0.8]
-max_pwm_start_array = [0.12 , 0.15, 0.20, 0.3, 0.35, 0.25, 0.3, 0.1, 0.2, 0.3]
+max_pwm_start_array = [0.10 , 0.15, 0.20, 0.3, 0.35, 0.25, 0.3, 0.1, 0.2, 0.3]
 
 starting_phase = 0
 start_trials = 0
@@ -220,7 +220,7 @@ def starter_m(current_time):
             print 'Partida com Sucesso :D'
             state_time = current_time
             current_starter_state = STARTER_STATES.SUCCESS
-            pwm_servo = 0.13 # Marcha Lenta
+            pwm_servo = 0.10 # Marcha Lenta
             
     elif current_starter_state == STARTER_STATES.SUCCESS:
 
