@@ -28,7 +28,7 @@ class Voltage():
         self.voltage_list=[]
         self.voltage_list=[49]
         # self.voltage_list=[]
-        self.delta_time_list=[np.nan]
+        self.delta_time_list=[0.1]
         self.time_list=[time.time()]
     
     def update_voltage(self,voltage):
@@ -41,7 +41,7 @@ class Voltage():
             self.voltage_list=self.voltage_list[-n_samples:]
             self.delta_time_list=self.delta_time_list[-n_samples:]
             
-        print(self.voltage_list)
+        # print(self.voltage_list)
         
     def voltage_state(self):
         if len(self.voltage_list)<n_samples:
@@ -55,22 +55,22 @@ class Voltage():
             self.current_voltage=v2
             self.old_voltade=v1
             if v2>v1:
-                self.Voltage_State='Charging'
+                self.Voltage_State='C'#'harging'
             else:
-                self.Voltage_State='NotCharging'
+                self.Voltage_State='N'#'otCharging'
     
     
 class PID():
     
     def __init__(self):
         # self.target_voltage=48.0
-        self.PID_Pgain=0.24
-        self.PID_Dgain=0.012
-        self.PID_Igain=0.012
-        self.PID_Windupgain=5
+        self.PID_Pgain=0.24 #Original 0.24
+        self.PID_Dgain=0.012 #Original 0.012
+        self.PID_Igain=0.012 #Original 0.012
+        self.PID_Windupgain=5 #Original 5
         self.pwm_servo=0.15
-        self.min_pwm_servo=0.15
-        self.max_pwm_servo=0.30
+        self.min_pwm_servo=0.21
+        self.max_pwm_servo=0.26
         self.last_error=0
         self.last_integral=0
         self.last_command=self.pwm_servo
@@ -84,41 +84,43 @@ class PID():
             self.pwm_servo=self.pwm_servo
         else:
             error=(self.target_voltage-voltage)
-            P_gain=self.PID_Pgain*error
+            self.P_gain=self.PID_Pgain*error
             if sample_time<=0.001:
-                D_gain=0
-                I_gain=0
+                # self.D_gain=0
+                # self.I_gain=0
+                sample_time=0.01
             else:
                 integral=self.last_integral+((self.last_command-self.pwm_servo)*self.PID_Windupgain*sample_time+error*self.PID_Igain)*sample_time
-                I_gain=integral
-                D_gain=self.PID_Dgain*(self.last_error-error)/sample_time
+                self.I_gain=integral
+                self.D_gain=self.PID_Dgain*(self.last_error-error)/sample_time
                 # Update Values
                 self.last_error=error
                 self.last_integral=integral 
-            self.pwm_servo=self.pwm_servo+P_gain+D_gain+I_gain
+            self.pwm_servo=self.pwm_servo+self.P_gain+self.D_gain+self.I_gain
    
         
         # Saturate Commandas    
         self.pwm_servo=max(min(self.max_pwm_servo,self.pwm_servo),self.min_pwm_servo)
         self.last_command=self.pwm_servo
-        print(self.pwm_servo)
+        # print(self.pwm_servo)
         
 
 ## Params
 # initial_voltage=45 #cs.voltage
 initial_voltage=cs.battery_voltage
-target_voltage=initial_voltage+1
+# target_voltage=initial_voltage+0.50
 # initial_value=0.15
 # armed_state=False
 armed_state=cs.armed
 # rpm=10000#cs.rpm1
 rpm=cs.rpm1
-max_time=10 # In Seconds
+max_time=60*1 # In Seconds
 
-PWM_SERVO_MIN =1100# Script.GetParam('SERVO'+str(int(PWM_SERVO_CHANNEL))+'_MIN')
-PWM_SERVO_MAX =1900# Script.GetParam('SERVO'+str(int(PWM_SERVO_CHANNEL))+'_MAX')
+PWM_SERVO_MIN =900# Script.GetParam('SERVO'+str(int(PWM_SERVO_CHANNEL))+'_MIN')
+PWM_SERVO_MAX =1750# Script.GetParam('SERVO'+str(int(PWM_SERVO_CHANNEL))+'_MAX')
 PWM_SERVO_RANGE = PWM_SERVO_MAX - PWM_SERVO_MIN
 PWM_SERVO_OFFSET = PWM_SERVO_MIN 
+PWM_SERVO_CHANNEL = 13
 
 initial_time=time.time()
 
@@ -137,18 +139,23 @@ elif armed_state == False and rpm > 1800: # Aeronave no chao com motor ligado
     V=Voltage()
     V.voltage_state()
     PID=PID()
-    PID.define_target_voltage(cs.voltage+1)
+    PID.define_target_voltage(cs.battery_voltage+0.5)
     
     while (time.time()-initial_time<max_time):# & (V.current_voltage<PID.target_voltage):
         # V.update_voltage(48+1*np.random.uniform(-1,1,1)[0])
         V.update_voltage(cs.battery_voltage)
         V.voltage_state()
         PID.calculate_pwm(V.voltage_state, V.current_voltage,V.delta_time_list[-1])
-        
-        MAV.doCommand(MAVLink.MAV_CMD.DO_SET_SERVO, PWM_SERVO_CHANNEL, pwm_servo * PWM_SERVO_RANGE + PWM_SERVO_OFFSET, 0,0,0,0,0) # Invertido Agora
+        print('PWM Command:' + str(PID.pwm_servo),str(V.current_voltage),str(PID.P_gain),str(PID.D_gain),str(PID.I_gain))
+        MAV.doCommand(MAVLink.MAV_CMD.DO_SET_SERVO, PWM_SERVO_CHANNEL, PID.pwm_servo * PWM_SERVO_RANGE + PWM_SERVO_OFFSET, 0,0,0,0,0) # Invertido Agora
         time.sleep(0.1)
         
-        
+    print('Saindo do While')     
+    time.sleep(2)
     # Out of the Main Loop
     pwm_servo=0.15 # Marcha Lenta de Volta
     MAV.doCommand(MAVLink.MAV_CMD.DO_SET_SERVO, PWM_SERVO_CHANNEL, pwm_servo * PWM_SERVO_RANGE + PWM_SERVO_OFFSET, 0,0,0,0,0) # Invertido Agora
+    print(str(pwm_servo * PWM_SERVO_RANGE + PWM_SERVO_OFFSET))
+    print('FIM')
+    print('Initial Voltage',str(initial_voltage))
+    print('/nTarget Voltage:',str((PID.target_voltage)),'Current Voltage:',str(cs.battery_voltage))

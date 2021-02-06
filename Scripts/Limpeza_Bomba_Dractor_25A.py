@@ -38,7 +38,7 @@ MissionPlanner.MainV2.speechEngine.SpeakAsync("Limpando o Sistema de Pulverizaç
 PUMP_CHANNEL=12
 PUMP_MAX_PWM=1900
 PUMP_MIN_PWM=1000
-time_pump=60
+time_pump=60*5
 
 MAV.doCommand(MAVLink.MAV_CMD.DO_SET_SERVO, PUMP_CHANNEL, PUMP_MIN_PWM, 0,0,0,0,0)
 
